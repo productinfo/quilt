@@ -2,6 +2,7 @@ export enum DateStyle {
   Long = 'Long',
   Short = 'Short',
   Humanize = 'Humanize',
+  HumanizeWithTime = 'HumanizeWithTime',
   Time = 'Time',
 }
 
@@ -19,7 +20,7 @@ export const dateStyle = {
   },
   [DateStyle.Humanize]: {
     month: 'long',
-    day: '2-digit',
+    day: 'numeric',
     year: 'numeric',
   },
   [DateStyle.Time]: {

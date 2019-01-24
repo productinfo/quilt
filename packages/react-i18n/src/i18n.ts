@@ -1,4 +1,14 @@
 import {languageFromLocale, regionFromLocale} from '@shopify/i18n';
+import {
+  getDateDiff,
+  isLessThanOneHourAgo,
+  isLessThanOneMinuteAgo,
+  isLessThanOneWeekAgo,
+  isLessThanOneYearAgo,
+  isToday,
+  isYesterday,
+  TimeUnit,
+} from '@shopify/javascript-utilities/dates';
 import {memoize, autobind} from '@shopify/javascript-utilities/decorators';
 import {
   I18nDetails,
@@ -214,16 +224,41 @@ export default class I18n {
   }
 
   private humanizeDate(date: Date, options?: Intl.DateTimeFormatOptions) {
-    const today = new Date();
+    const time = this.formatDate(date, {
+      ...options,
+      style: DateStyle.Time,
+    }).toLocaleLowerCase();
 
-    if (isSameDate(today, date)) {
-      return this.translate('today');
+    if (isLessThanOneMinuteAgo(date)) {
+      return this.translate('humanize.now');
+    } else if (isLessThanOneHourAgo(date)) {
+      const minutes = getDateDiff(TimeUnit.Minute, date);
+      return this.translate('humanize.minutes', {
+        count: minutes,
+      });
+    } else if (isToday(date)) {
+      return time;
     } else if (isYesterday(date)) {
-      return this.translate('yesterday');
+      return this.translate('humanize.yesterday', {time});
+    } else if (isLessThanOneWeekAgo(date)) {
+      return this.translate('humanize.weekday', {
+        day: Weekdays[date.getDay()],
+        time,
+      });
+    } else if (isLessThanOneYearAgo(date)) {
+      const monthDay = this.formatDate(date, {
+        ...options,
+        month: 'short',
+        day: 'numeric',
+      });
+      return this.translate('humanize.date', {
+        date: monthDay,
+        time,
+      });
     } else {
       return this.formatDate(date, {
         ...options,
-        ...dateStyle[DateStyle.Humanize],
+        style: DateStyle.Short,
       });
     }
   }
@@ -236,24 +271,4 @@ function isTranslateOptions(
     | ComplexReplacementDictionary,
 ): object is TranslateOptions {
   return 'scope' in object;
-}
-
-function isSameMonthAndYear(source: Date, target: Date) {
-  return (
-    source.getFullYear() === target.getFullYear() &&
-    source.getMonth() === target.getMonth()
-  );
-}
-
-function isSameDate(source: Date, target: Date) {
-  return (
-    isSameMonthAndYear(source, target) && source.getDate() === target.getDate()
-  );
-}
-
-function isYesterday(date: Date) {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  return isSameDate(yesterday, date);
 }
